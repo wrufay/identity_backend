@@ -190,6 +190,9 @@ app.post('/api/tts', async (req, res) => {
       return res.status(400).json({ error: 'No text provided' });
     }
 
+    console.log('TTS request for text:', text);
+    console.log('Using API key:', process.env.ELEVENLABS_API_KEY ? 'Key exists' : 'NO KEY');
+
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/DowyQ68vDpgFYdWVGjc3', {
       method: 'POST',
       headers: {
@@ -208,16 +211,20 @@ app.post('/api/tts', async (req, res) => {
     });
 
     if (!response.ok) {
-      throw new Error('ElevenLabs API error');
+      const errorText = await response.text();
+      console.error('ElevenLabs error status:', response.status);
+      console.error('ElevenLabs error body:', errorText);
+      return res.status(500).json({ error: 'ElevenLabs API error', details: errorText });
     }
 
     const audioBuffer = await response.arrayBuffer();
     const base64Audio = Buffer.from(audioBuffer).toString('base64');
+    console.log('TTS success, audio length:', base64Audio.length);
 
     res.json({ audio: base64Audio });
   } catch (error) {
     console.error('TTS error:', error);
-    res.status(500).json({ error: 'Failed to generate speech' });
+    res.status(500).json({ error: 'Failed to generate speech', details: error.message });
   }
 });
 

@@ -85,7 +85,7 @@ app.post('/api/scan', async (req, res) => {
       return res.status(400).json({ error: 'No image provided' });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // Ask Gemini to identify if the image contains one of our 3 items
     const result = await model.generateContent([

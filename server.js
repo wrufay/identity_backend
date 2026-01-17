@@ -31,6 +31,46 @@ const Word = mongoose.model('Word', wordSchema);
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Hardcoded cultural content for our 3 target items
+const CULTURAL_ITEMS = {
+  'zongzi': {
+    english: 'Zongzi',
+    translation: '粽子',
+    pronunciation: 'zòngzi',
+    culturalContext: 'Sticky rice wrapped in bamboo leaves, eaten during Dragon Boat Festival to honor Qu Yuan, a poet who drowned himself in protest. Families wrap them together — each region has its own filling style. The act of wrapping zongzi connects you to thousands of years of tradition.'
+  },
+  'star anise': {
+    english: 'Star Anise',
+    translation: '八角',
+    pronunciation: 'bājiǎo',
+    culturalContext: 'The "eight corners" spice is essential in Chinese five-spice powder and braised dishes. Its star shape represents luck and completeness. This is the smell of red-braised pork belly, of your grandmother\'s kitchen, of home.'
+  },
+  'mooncake': {
+    english: 'Mooncake',
+    translation: '月饼',
+    pronunciation: 'yuèbǐng',
+    culturalContext: 'Shared during Mid-Autumn Festival when families gather to admire the full moon. The round shape symbolizes completeness and reunion. Inside, sweet lotus paste or red bean — each bite a wish for family togetherness, even when far apart.'
+  }
+};
+
+// Helper to match detected object to our items
+function matchCulturalItem(detected) {
+  const lower = detected.toLowerCase();
+
+  // Check for matches (including partial matches)
+  if (lower.includes('zongzi') || lower.includes('rice dumpling') || lower.includes('sticky rice')) {
+    return CULTURAL_ITEMS['zongzi'];
+  }
+  if (lower.includes('star anise') || lower.includes('anise') || lower.includes('八角')) {
+    return CULTURAL_ITEMS['star anise'];
+  }
+  if (lower.includes('mooncake') || lower.includes('moon cake') || lower.includes('月饼')) {
+    return CULTURAL_ITEMS['mooncake'];
+  }
+
+  return null;
+}
+
 // Health check
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'CultureLens API is running' });
@@ -47,6 +87,7 @@ app.post('/api/scan', async (req, res) => {
 
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
+    // Ask Gemini to identify if the image contains one of our 3 items
     const result = await model.generateContent([
       {
         inlineData: {
@@ -54,32 +95,34 @@ app.post('/api/scan', async (req, res) => {
           data: image
         }
       },
-      `You are a cultural education assistant helping Chinese-Americans/Canadians reconnect with their heritage.
+      `Look at this image and determine if it contains any of these items:
+1. Zongzi (sticky rice dumpling wrapped in bamboo leaves)
+2. Star anise (八角, the star-shaped spice)
+3. Mooncake (月饼, round pastry with patterns)
 
-Identify the main object or text in this image. Return ONLY valid JSON (no markdown) with these fields:
-- "english": the English word/phrase for what you see
-- "translation": Chinese characters (Simplified)
-- "pronunciation": pinyin with tone marks (e.g., "jiǎozi" not "jiaozi")
-- "culturalContext": 2-3 sentences about the cultural significance for Chinese heritage. Make it personal and meaningful - mention traditions, family connections, or historical context. Write as if speaking to someone reconnecting with their roots.
+If you see one of these items, respond with ONLY the item name (e.g., "zongzi", "star anise", or "mooncake").
+If none of these items are visible, respond with "none".
 
-Example response:
-{"english":"dumpling","translation":"饺子","pronunciation":"jiǎozi","culturalContext":"Made during Chinese New Year, each fold is a wish for prosperity. Shaped like ancient gold ingots to invite wealth. Your grandmother probably folded these with her own grandmother."}`
+Be generous - if it looks similar or is partially visible, identify it.`
     ]);
 
-    const text = result.response.text();
+    const detected = result.response.text().trim();
+    console.log('Gemini detected:', detected);
 
-    // Parse the JSON response
-    let data;
-    try {
-      // Remove any markdown code blocks if present
-      const cleanText = text.replace(/```json?|```/g, '').trim();
-      data = JSON.parse(cleanText);
-    } catch (parseError) {
-      console.error('Failed to parse Gemini response:', text);
-      return res.status(500).json({ error: 'Failed to parse AI response' });
+    // Match to our hardcoded content
+    const culturalItem = matchCulturalItem(detected);
+
+    if (!culturalItem) {
+      return res.status(404).json({
+        error: 'Item not recognized',
+        message: 'Point at a zongzi, star anise, or mooncake to learn!'
+      });
     }
 
-    // Check if user has seen this word before
+    // Build response data
+    const data = { ...culturalItem };
+
+    // Check if user has seen this word before (spaced repetition)
     const existingWord = await Word.findOne({
       userId,
       english: data.english.toLowerCase()
@@ -87,16 +130,13 @@ Example response:
 
     let isReview = false;
     if (existingWord) {
-      // Update existing word
       existingWord.timesSeenCount += 1;
       existingWord.lastSeen = new Date();
-      // Simple spaced repetition: next review in (count * 1 day)
       existingWord.nextReview = new Date(Date.now() + existingWord.timesSeenCount * 24 * 60 * 60 * 1000);
       await existingWord.save();
       isReview = true;
       data.timesSeenCount = existingWord.timesSeenCount;
     } else {
-      // Save new word
       const newWord = new Word({
         userId,
         english: data.english.toLowerCase(),

@@ -190,7 +190,7 @@ app.post('/api/tts', async (req, res) => {
       return res.status(400).json({ error: 'No text provided' });
     }
 
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/XB0fDUnXU5powFXDhCwa', {
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/DowyQ68vDpgFYdWVGjc3', {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',

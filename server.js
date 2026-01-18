@@ -79,7 +79,7 @@ function matchCulturalItem(detected) {
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'CultureLens API is running' });
+  res.json({ status: 'ok', message: 'ProjectOrigin API is running' });
 });
 
 // Main scan endpoint - using Gemini for everything
@@ -91,12 +91,12 @@ app.post('/api/scan', async (req, res) => {
       return res.status(400).json({ error: 'No image provided' });
     }
 
-    // Use Gemini to detect Chinese cultural items and generate cultural context
+    // Use Gemini to detect objects and generate cultural/historical context
     console.log('Starting Gemini detection...');
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash',
       generationConfig: {
-        temperature: 0.4,
+        temperature: 0.6,
         topP: 0.8,
         topK: 40,
       }
@@ -111,26 +111,16 @@ app.post('/api/scan', async (req, res) => {
             data: image
           }
         },
-        `You are a Chinese cultural heritage expert. Carefully examine this image and identify ANY Chinese cultural items, foods, objects, symbols, or artifacts.
+        `You are a knowledgeable cultural expert. Examine this image and identify the most prominent or interesting object, food, symbol, or item visible.
 
-Look for:
-- Traditional Chinese foods (dumplings, buns, noodles, desserts, snacks, ingredients, spices)
-- Cultural objects (lanterns, fans, calligraphy, tea sets, chopsticks, decorations)
-- Festival items (mooncakes, zongzi, tangyuan, niangao)
-- Symbols (dragons, phoenixes, lucky characters, zodiac animals)
-- Traditional clothing or accessories
-- Architectural elements
-- Religious or ceremonial items
+IMPORTANT INSTRUCTIONS:
+- If the object has Chinese cultural significance, provide Chinese translation (simplified characters) and pinyin pronunciation with detailed cultural context
+- If the object is from another culture, provide translation in that language if relevant (e.g., Japanese items in Japanese, French items in French)
+- If the object is universal/modern with no specific cultural ties, just use the English name for translation (or keep pronunciation empty)
 
-If you identify a Chinese cultural item, respond with ONLY this JSON format (no extra text):
-{
-  "english": "English name of the item",
-  "translation": "Chinese characters in simplified form",
-  "pronunciation": "pinyin with tone marks (e.g., yuèbǐng)",
-  "culturalContext": "2-3 engaging sentences about cultural significance, traditions, history, or emotional meaning. Make it personal and evocative."
-}
+Examples:
 
-Example:
+Chinese cultural item:
 {
   "english": "Mooncake",
   "translation": "月饼",
@@ -138,9 +128,41 @@ Example:
   "culturalContext": "Shared during Mid-Autumn Festival when families gather to admire the full moon. The round shape symbolizes completeness and reunion. Inside, sweet lotus paste or red bean — each bite a wish for family togetherness, even when far apart."
 }
 
-If NO Chinese cultural items are visible, respond with: {"error": "none"}
+Japanese cultural item:
+{
+  "english": "Matcha",
+  "translation": "抹茶",
+  "pronunciation": "matcha",
+  "culturalContext": "Finely ground green tea powder central to Japanese tea ceremonies. Whisked into a frothy drink, it embodies wabi-sabi — finding beauty in imperfection. Each bowl is a meditation, each sip a moment of mindfulness."
+}
 
-Be generous in your identification - even partial views or common items count. Return ONLY valid JSON.`
+Universal everyday object:
+{
+  "english": "Water Bottle",
+  "translation": "Water Bottle",
+  "pronunciation": "",
+  "culturalContext": "A simple vessel that carries life's essential element. From ancient clay pots to modern insulated containers, humans have always needed to carry water — a reminder that some needs transcend culture and time."
+}
+
+Modern tech object:
+{
+  "english": "Smartphone",
+  "translation": "Smartphone",
+  "pronunciation": "",
+  "culturalContext": "This pocket-sized computer has revolutionized human connection, putting the world's knowledge at our fingertips. In just over a decade, it transformed from luxury to necessity, reshaping how we communicate, work, and experience reality."
+}
+
+Food with cultural significance:
+{
+  "english": "Croissant",
+  "translation": "Croissant",
+  "pronunciation": "krwah-sahn",
+  "culturalContext": "Despite its association with France, this flaky pastry originated in Vienna. The crescent shape celebrates a 17th-century victory over the Ottoman Empire. Now a symbol of French breakfast culture, each layer represents centuries of culinary refinement."
+}
+
+Respond with ONLY valid JSON in this format. If NO clear object is visible, respond with: {"error": "none"}
+
+Be generous in identification and make the cultural context engaging and educational.`
       ]);
       console.log('Gemini call completed successfully');
     } catch (geminiError) {
@@ -183,7 +205,7 @@ Be generous in your identification - even partial views or common items count. R
     if (culturalData.error === 'none') {
       return res.status(404).json({
         error: 'Item not recognized',
-        message: 'Point your camera at a Chinese cultural item to learn about it!'
+        message: 'Point your camera at an object to learn about it!'
       });
     }
 

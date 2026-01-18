@@ -281,6 +281,71 @@ app.get('/api/review/:userId', async (req, res) => {
   }
 });
 
+// Chat endpoint using Claude
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, userId = 'default', conversationHistory = [] } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'No message provided' });
+    }
+
+    console.log('Chat request from user:', userId);
+    console.log('Message:', message);
+
+    // Get user's vocabulary for context
+    const userWords = await Word.find({ userId }).sort({ lastSeen: -1 }).limit(20);
+    const vocabularyContext = userWords.length > 0
+      ? `The user has learned these Chinese words recently: ${userWords.map(w => `${w.english} (${w.translation}, ${w.pronunciation})`).join(', ')}.`
+      : 'The user has not scanned any objects yet.';
+
+    // Build conversation messages for Claude
+    const messages = [
+      ...conversationHistory.map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.text
+      })),
+      {
+        role: 'user',
+        content: message
+      }
+    ];
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 500,
+      system: `You are Sunny, a friendly and knowledgeable cultural learning assistant in a mobile app that helps users learn Chinese language and culture by scanning real-world objects.
+
+Your personality:
+- Warm, encouraging, and patient like a favorite teacher
+- Enthusiastic about Chinese culture and language
+- Use simple, clear explanations suitable for learners
+- Occasionally use relevant Chinese words/phrases with pinyin and meaning
+- Keep responses concise (2-4 sentences usually) since this is a mobile chat
+
+${vocabularyContext}
+
+You can help users with:
+- Explaining Chinese vocabulary, characters, and pronunciation
+- Sharing cultural context about Chinese traditions, food, festivals
+- Answering questions about objects they've scanned
+- Providing language learning tips
+- Discussing Chinese customs and their meanings
+
+If users ask about non-Chinese cultural items, you can still be helpful and relate it back to Chinese language/culture when relevant.`,
+      messages: messages
+    });
+
+    const aiResponse = response.content[0].text;
+    console.log('Claude response:', aiResponse);
+
+    res.json({ response: aiResponse });
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ error: 'Failed to process chat', details: error.message });
+  }
+});
+
 // Text-to-speech endpoint using ElevenLabs
 app.post('/api/tts', async (req, res) => {
   try {

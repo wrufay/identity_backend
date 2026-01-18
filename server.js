@@ -92,6 +92,7 @@ app.post('/api/scan', async (req, res) => {
     }
 
     // Use Gemini to detect Chinese cultural items and generate cultural context
+    console.log('Starting Gemini detection...');
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash',
       generationConfig: {
@@ -100,14 +101,17 @@ app.post('/api/scan', async (req, res) => {
         topK: 40,
       }
     });
-    const geminiResult = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: image
-        }
-      },
-      `You are a Chinese cultural heritage expert. Carefully examine this image and identify ANY Chinese cultural items, foods, objects, symbols, or artifacts.
+
+    let geminiResult;
+    try {
+      geminiResult = await model.generateContent([
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: image
+          }
+        },
+        `You are a Chinese cultural heritage expert. Carefully examine this image and identify ANY Chinese cultural items, foods, objects, symbols, or artifacts.
 
 Look for:
 - Traditional Chinese foods (dumplings, buns, noodles, desserts, snacks, ingredients, spices)
@@ -137,23 +141,43 @@ Example:
 If NO Chinese cultural items are visible, respond with: {"error": "none"}
 
 Be generous in your identification - even partial views or common items count. Return ONLY valid JSON.`
-    ]);
+      ]);
+      console.log('Gemini call completed successfully');
+    } catch (geminiError) {
+      console.error('Gemini API Error:', geminiError.message);
+      console.error('Full error:', geminiError);
+      return res.status(500).json({
+        error: 'Failed to call Gemini API',
+        details: geminiError.message
+      });
+    }
 
     let geminiText = geminiResult.response.text().trim();
-    console.log('Gemini response:', geminiText);
+    console.log('Raw Gemini response:', geminiText);
 
     // Remove markdown code blocks if present (```json ... ```)
     if (geminiText.startsWith('```')) {
-      geminiText = geminiText.replace(/^```json?\n?/i, '').replace(/\n?```$/, '').trim();
+      geminiText = geminiText.replace(/^```json?\n?/i, '').replace(/\n?```$/m, '').trim();
+      console.log('After removing markdown:', geminiText);
     }
 
     // Parse Gemini's JSON response
     let culturalData;
     try {
       culturalData = JSON.parse(geminiText);
+      console.log('Parsed cultural data:', culturalData);
     } catch (parseError) {
+      console.error('JSON Parse Error:', parseError.message);
       console.error('Failed to parse Gemini response:', geminiText);
-      throw new Error('Invalid response from Gemini');
+      console.error('Response length:', geminiText.length);
+      console.error('First 200 chars:', geminiText.substring(0, 200));
+
+      // Return a more helpful error
+      return res.status(500).json({
+        error: 'Failed to parse AI response',
+        details: parseError.message,
+        preview: geminiText.substring(0, 100)
+      });
     }
 
     if (culturalData.error === 'none') {

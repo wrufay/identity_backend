@@ -85,7 +85,7 @@ app.get('/', (req, res) => {
 // Main scan endpoint - using Gemini for everything
 app.post('/api/scan', async (req, res) => {
   try {
-    const { image, userId = 'default' } = req.body;
+    const { image, userId = 'default', familiarityLevel = 0 } = req.body;
 
     if (!image) {
       return res.status(400).json({ error: 'No image provided' });
@@ -112,6 +112,33 @@ app.post('/api/scan', async (req, res) => {
           }
         },
         `You are a knowledgeable cultural expert. Examine this image and identify the most prominent or interesting object, food, symbol, or item visible.
+
+MANDARIN IMMERSION LEVEL: ${familiarityLevel}/10
+Adjust the culturalContext field based on this familiarity level. The user is learning Mandarin and this controls how much Chinese vocabulary appears in the description:
+
+- Level 0: Write entirely in English, no Chinese characters at all. Example: "Mooncakes are traditional pastries eaten during the Mid-Autumn Festival. Families gather to appreciate the full moon while sharing these treats. The round shape symbolizes reunion and togetherness."
+
+- Level 1: Write entirely in English, no Chinese characters at all. Example: "Mooncakes are traditional pastries eaten during the Mid-Autumn Festival. Families gather to appreciate the full moon while sharing these treats. The round shape symbolizes reunion and togetherness."
+
+- Level 2: Write entirely in English, no Chinese characters at all. Example: "Mooncakes are traditional pastries eaten during the Mid-Autumn Festival. Families gather to appreciate the full moon while sharing these treats. The round shape symbolizes reunion and togetherness."
+
+- Level 3: Include only the main term in Chinese with pinyin. Example: "月饼 (yuèbǐng) are traditional pastries eaten during the Mid-Autumn Festival. Families gather to appreciate the full moon while sharing these treats. The round shape symbolizes reunion and togetherness."
+
+- Level 4: Include only the main term in Chinese with pinyin. Example: "月饼 (yuèbǐng) are traditional pastries eaten during the Mid-Autumn Festival. Families gather to appreciate the full moon while sharing these treats. The round shape symbolizes reunion and togetherness."
+
+- Level 5: Include the main term plus one related cultural term. Example: "月饼 (yuèbǐng) are traditional pastries eaten during 中秋节 (Zhōngqiū Jié) - the Mid-Autumn Festival. Families gather to appreciate the full moon while sharing these treats. The round shape symbolizes reunion and togetherness."
+
+- Level 6: Include 2-3 Chinese terms with pinyin. Example: "月饼 (yuèbǐng) are traditional pastries eaten during 中秋节 (Zhōngqiū Jié) - the Mid-Autumn Festival. Families gather to appreciate the 满月 (mǎnyuè - full moon) while sharing these treats. The round shape symbolizes reunion and togetherness."
+
+- Level 7: Use more Chinese vocabulary throughout. Example: "月饼 (yuèbǐng) are traditional pastries eaten during 中秋节 (Zhōngqiū Jié) - the Mid-Autumn Festival. Families gather to appreciate the 满月 (mǎnyuè - full moon) while sharing these treats. The round shape symbolizes 团圆 (tuányuán - reunion and togetherness)."
+
+- Level 8: Heavy Chinese vocabulary with pinyin. Example: "月饼 (yuèbǐng) are traditional pastries eaten during 中秋节 (Zhōngqiū Jié). 家人 (jiārén - family members) gather to appreciate the 满月 (mǎnyuè - full moon) while sharing these treats. The round shape symbolizes 团圆 (tuányuán - reunion)."
+
+- Level 9: Mixed Chinese-English immersive style. Example: "月饼 are traditional pastries eaten during 中秋节. 家人团聚 (jiārén tuánjù - families gather) to appreciate the 满月 while sharing these 美味的 (měiwèi de - delicious) treats. The round shape symbolizes 团圆."
+
+- Level 10: Mostly Chinese with some English translation. Example: "月饼是中秋节的传统美食 (Yuèbǐng shì Zhōngqiū Jié de chuántǒng měishí). 家人团聚赏满月，分享月饼。圆形象征着团圆 (The round shape symbolizes reunion)."
+
+IMPORTANT: The translation and pronunciation fields should ALWAYS contain Chinese characters and pinyin regardless of familiarityLevel. Only the culturalContext field changes based on the level.
 
 IMPORTANT INSTRUCTIONS:
 - ALWAYS provide Chinese translation (simplified characters) and pinyin pronunciation for ALL objects, regardless of cultural origin

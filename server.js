@@ -114,9 +114,8 @@ app.post('/api/scan', async (req, res) => {
         `You are a knowledgeable cultural expert. Examine this image and identify the most prominent or interesting object, food, symbol, or item visible.
 
 IMPORTANT INSTRUCTIONS:
-- If the object has Chinese cultural significance, provide Chinese translation (simplified characters) and pinyin pronunciation with detailed cultural context
-- If the object is from another culture, provide translation in that language if relevant (e.g., Japanese items in Japanese, French items in French)
-- If the object is universal/modern with no specific cultural ties, just use the English name for translation (or keep pronunciation empty)
+- ALWAYS provide Chinese translation (simplified characters) and pinyin pronunciation for ALL objects, regardless of cultural origin
+- If the object has specific cultural significance (Chinese or otherwise), include that context
 - CRITICAL: Keep culturalContext to 150-180 characters maximum (about 2-3 lines). Be concise but meaningful.
 
 Examples:
@@ -140,24 +139,24 @@ Japanese cultural item:
 Universal everyday object:
 {
   "english": "Water Bottle",
-  "translation": "Water Bottle",
-  "pronunciation": "",
+  "translation": "水瓶",
+  "pronunciation": "shuǐpíng",
   "culturalContext": "A simple vessel for life's essential element. From ancient clay pots to modern containers, carrying water is a universal human need."
 }
 
 Modern tech object:
 {
   "english": "Smartphone",
-  "translation": "Smartphone",
-  "pronunciation": "",
+  "translation": "智能手机",
+  "pronunciation": "zhìnéng shǒujī",
   "culturalContext": "Revolutionized human connection in just over a decade, transforming from luxury to necessity and reshaping how we communicate."
 }
 
 Food with cultural significance:
 {
   "english": "Croissant",
-  "translation": "Croissant",
-  "pronunciation": "krwah-sahn",
+  "translation": "羊角面包",
+  "pronunciation": "yángjiǎo miànbāo",
   "culturalContext": "Flaky pastry with Viennese origins, now a symbol of French breakfast culture. The crescent shape celebrates a 17th-century victory."
 }
 

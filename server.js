@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Anthropic = require('@anthropic-ai/sdk');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
@@ -30,6 +31,11 @@ const Word = mongoose.model('Word', wordSchema);
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Initialize Anthropic
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 // Hardcoded cultural content for our 3 target items
 const CULTURAL_ITEMS = {
@@ -76,7 +82,7 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'CultureLens API is running' });
 });
 
-// Main scan endpoint
+// Main scan endpoint - using Gemini for everything
 app.post('/api/scan', async (req, res) => {
   try {
     const { image, userId = 'default' } = req.body;
@@ -85,61 +91,88 @@ app.post('/api/scan', async (req, res) => {
       return res.status(400).json({ error: 'No image provided' });
     }
 
+    // Use Gemini to detect Chinese cultural items and generate cultural context
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-    // Ask Gemini to identify if the image contains one of our 3 items
-    const result = await model.generateContent([
+    const geminiResult = await model.generateContent([
       {
         inlineData: {
           mimeType: 'image/jpeg',
           data: image
         }
       },
-      `Look at this image and determine if it contains any of these items:
-1. Zongzi (sticky rice dumpling wrapped in bamboo leaves)
-2. Star anise (八角, the star-shaped spice)
-3. Mooncake (月饼, round pastry with patterns)
+      `You are a Chinese heritage educator. Look at this image and identify if there are any Chinese cultural items, food, objects, or symbols visible.
 
-If you see one of these items, respond with ONLY the item name (e.g., "zongzi", "star anise", or "mooncake").
-If none of these items are visible, respond with "none".
+If you see a Chinese cultural item, provide the following in JSON format:
+{
+  "english": "English name of the item",
+  "translation": "the Chinese characters (simplified)",
+  "pronunciation": "the pinyin pronunciation with tone marks",
+  "culturalContext": "2-3 sentences about cultural significance, traditions, or emotional connections. Make it personal and evocative."
+}
 
-Be generous - if it looks similar or is partially visible, identify it.`
+Example for mooncake:
+{
+  "english": "Mooncake",
+  "translation": "月饼",
+  "pronunciation": "yuèbǐng",
+  "culturalContext": "Shared during Mid-Autumn Festival when families gather to admire the full moon. The round shape symbolizes completeness and reunion. Inside, sweet lotus paste or red bean — each bite a wish for family togetherness, even when far apart."
+}
+
+If no Chinese cultural items are visible, respond with: {"error": "none"}
+
+Return ONLY valid JSON. Be generous - if it looks like a Chinese cultural item, identify it.`
     ]);
 
-    const detected = result.response.text().trim();
-    console.log('Gemini detected:', detected);
+    const geminiText = geminiResult.response.text().trim();
+    console.log('Gemini response:', geminiText);
 
-    // Match to our hardcoded content
-    const culturalItem = matchCulturalItem(detected);
+    // Parse Gemini's JSON response
+    let culturalData;
+    try {
+      culturalData = JSON.parse(geminiText);
+    } catch (parseError) {
+      console.error('Failed to parse Gemini response:', geminiText);
+      throw new Error('Invalid response from Gemini');
+    }
 
-    if (!culturalItem) {
+    if (culturalData.error === 'none') {
       return res.status(404).json({
         error: 'Item not recognized',
-        message: 'Point at a zongzi, star anise, or mooncake to learn!'
+        message: 'Point your camera at a Chinese cultural item to learn about it!'
       });
     }
 
     // Build response data
-    const data = { ...culturalItem };
+    const data = {
+      english: culturalData.english,
+      translation: culturalData.translation,
+      pronunciation: culturalData.pronunciation,
+      culturalContext: culturalData.culturalContext
+    };
 
     // Check if user has seen this word before (spaced repetition)
     const existingWord = await Word.findOne({
       userId,
-      english: data.english.toLowerCase()
+      english: culturalData.english.toLowerCase()
     });
 
     let isReview = false;
     if (existingWord) {
+      // Update existing word
       existingWord.timesSeenCount += 1;
       existingWord.lastSeen = new Date();
       existingWord.nextReview = new Date(Date.now() + existingWord.timesSeenCount * 24 * 60 * 60 * 1000);
+      existingWord.translation = data.translation;
+      existingWord.pronunciation = data.pronunciation;
+      existingWord.culturalContext = data.culturalContext;
       await existingWord.save();
       isReview = true;
       data.timesSeenCount = existingWord.timesSeenCount;
     } else {
+      // Save new word
       const newWord = new Word({
         userId,
-        english: data.english.toLowerCase(),
+        english: culturalData.english.toLowerCase(),
         translation: data.translation,
         pronunciation: data.pronunciation,
         culturalContext: data.culturalContext
@@ -153,7 +186,7 @@ Be generous - if it looks similar or is partially visible, identify it.`
 
   } catch (error) {
     console.error('Scan error:', error);
-    res.status(500).json({ error: 'Failed to process image' });
+    res.status(500).json({ error: 'Failed to process image', details: error.message });
   }
 });
 

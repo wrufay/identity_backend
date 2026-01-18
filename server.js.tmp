@@ -117,7 +117,6 @@ IMPORTANT INSTRUCTIONS:
 - If the object has Chinese cultural significance, provide Chinese translation (simplified characters) and pinyin pronunciation with detailed cultural context
 - If the object is from another culture, provide translation in that language if relevant (e.g., Japanese items in Japanese, French items in French)
 - If the object is universal/modern with no specific cultural ties, just use the English name for translation (or keep pronunciation empty)
-- CRITICAL: Keep culturalContext to 150-180 characters maximum (about 2-3 lines). Be concise but meaningful.
 
 Examples:
 
@@ -126,7 +125,7 @@ Chinese cultural item:
   "english": "Mooncake",
   "translation": "月饼",
   "pronunciation": "yuèbǐng",
-  "culturalContext": "Shared during Mid-Autumn Festival. The round shape symbolizes family reunion, filled with sweet lotus paste or red bean."
+  "culturalContext": "Shared during Mid-Autumn Festival when families gather to admire the full moon. The round shape symbolizes completeness and reunion. Inside, sweet lotus paste or red bean — each bite a wish for family togetherness, even when far apart."
 }
 
 Japanese cultural item:
@@ -134,7 +133,7 @@ Japanese cultural item:
   "english": "Matcha",
   "translation": "抹茶",
   "pronunciation": "matcha",
-  "culturalContext": "Green tea powder central to Japanese tea ceremonies. Each whisked bowl embodies mindfulness and finding beauty in imperfection."
+  "culturalContext": "Finely ground green tea powder central to Japanese tea ceremonies. Whisked into a frothy drink, it embodies wabi-sabi — finding beauty in imperfection. Each bowl is a meditation, each sip a moment of mindfulness."
 }
 
 Universal everyday object:
@@ -142,7 +141,7 @@ Universal everyday object:
   "english": "Water Bottle",
   "translation": "Water Bottle",
   "pronunciation": "",
-  "culturalContext": "A simple vessel for life's essential element. From ancient clay pots to modern containers, carrying water is a universal human need."
+  "culturalContext": "A simple vessel that carries life's essential element. From ancient clay pots to modern insulated containers, humans have always needed to carry water — a reminder that some needs transcend culture and time."
 }
 
 Modern tech object:
@@ -150,7 +149,7 @@ Modern tech object:
   "english": "Smartphone",
   "translation": "Smartphone",
   "pronunciation": "",
-  "culturalContext": "Revolutionized human connection in just over a decade, transforming from luxury to necessity and reshaping how we communicate."
+  "culturalContext": "This pocket-sized computer has revolutionized human connection, putting the world's knowledge at our fingertips. In just over a decade, it transformed from luxury to necessity, reshaping how we communicate, work, and experience reality."
 }
 
 Food with cultural significance:
@@ -158,7 +157,7 @@ Food with cultural significance:
   "english": "Croissant",
   "translation": "Croissant",
   "pronunciation": "krwah-sahn",
-  "culturalContext": "Flaky pastry with Viennese origins, now a symbol of French breakfast culture. The crescent shape celebrates a 17th-century victory."
+  "culturalContext": "Despite its association with France, this flaky pastry originated in Vienna. The crescent shape celebrates a 17th-century victory over the Ottoman Empire. Now a symbol of French breakfast culture, each layer represents centuries of culinary refinement."
 }
 
 Respond with ONLY valid JSON in this format. If NO clear object is visible, respond with: {"error": "none"}

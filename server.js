@@ -123,8 +123,13 @@ If no Chinese cultural items are visible, respond with: {"error": "none"}
 Return ONLY valid JSON. Be generous - if it looks like a Chinese cultural item, identify it.`
     ]);
 
-    const geminiText = geminiResult.response.text().trim();
+    let geminiText = geminiResult.response.text().trim();
     console.log('Gemini response:', geminiText);
+
+    // Remove markdown code blocks if present (```json ... ```)
+    if (geminiText.startsWith('```')) {
+      geminiText = geminiText.replace(/^```json?\n?/i, '').replace(/\n?```$/, '').trim();
+    }
 
     // Parse Gemini's JSON response
     let culturalData;
@@ -226,7 +231,10 @@ app.post('/api/tts', async (req, res) => {
     console.log('TTS request for text:', text);
     console.log('Using API key:', process.env.ELEVENLABS_API_KEY ? 'Key exists' : 'NO KEY');
 
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/DowyQ68vDpgFYdWVGjc3', {
+    // Use a Chinese voice ID for better pronunciation
+    const voiceId = 'DowyQ68vDpgFYdWVGjc3'; // This should be a Chinese-capable voice
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',
@@ -238,7 +246,9 @@ app.post('/api/tts', async (req, res) => {
         model_id: 'eleven_multilingual_v2',
         voice_settings: {
           stability: 0.5,
-          similarity_boost: 0.5
+          similarity_boost: 0.75,
+          style: 0,
+          use_speaker_boost: true
         }
       })
     });

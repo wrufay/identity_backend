@@ -92,7 +92,14 @@ app.post('/api/scan', async (req, res) => {
     }
 
     // Use Gemini to detect Chinese cultural items and generate cultural context
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        temperature: 0.4,
+        topP: 0.8,
+        topK: 40,
+      }
+    });
     const geminiResult = await model.generateContent([
       {
         inlineData: {
@@ -100,17 +107,26 @@ app.post('/api/scan', async (req, res) => {
           data: image
         }
       },
-      `You are a Chinese heritage educator. Look at this image and identify if there are any Chinese cultural items, food, objects, or symbols visible.
+      `You are a Chinese cultural heritage expert. Carefully examine this image and identify ANY Chinese cultural items, foods, objects, symbols, or artifacts.
 
-If you see a Chinese cultural item, provide the following in JSON format:
+Look for:
+- Traditional Chinese foods (dumplings, buns, noodles, desserts, snacks, ingredients, spices)
+- Cultural objects (lanterns, fans, calligraphy, tea sets, chopsticks, decorations)
+- Festival items (mooncakes, zongzi, tangyuan, niangao)
+- Symbols (dragons, phoenixes, lucky characters, zodiac animals)
+- Traditional clothing or accessories
+- Architectural elements
+- Religious or ceremonial items
+
+If you identify a Chinese cultural item, respond with ONLY this JSON format (no extra text):
 {
   "english": "English name of the item",
-  "translation": "the Chinese characters (simplified)",
-  "pronunciation": "the pinyin pronunciation with tone marks",
-  "culturalContext": "2-3 sentences about cultural significance, traditions, or emotional connections. Make it personal and evocative."
+  "translation": "Chinese characters in simplified form",
+  "pronunciation": "pinyin with tone marks (e.g., yuèbǐng)",
+  "culturalContext": "2-3 engaging sentences about cultural significance, traditions, history, or emotional meaning. Make it personal and evocative."
 }
 
-Example for mooncake:
+Example:
 {
   "english": "Mooncake",
   "translation": "月饼",
@@ -118,9 +134,9 @@ Example for mooncake:
   "culturalContext": "Shared during Mid-Autumn Festival when families gather to admire the full moon. The round shape symbolizes completeness and reunion. Inside, sweet lotus paste or red bean — each bite a wish for family togetherness, even when far apart."
 }
 
-If no Chinese cultural items are visible, respond with: {"error": "none"}
+If NO Chinese cultural items are visible, respond with: {"error": "none"}
 
-Return ONLY valid JSON. Be generous - if it looks like a Chinese cultural item, identify it.`
+Be generous in your identification - even partial views or common items count. Return ONLY valid JSON.`
     ]);
 
     let geminiText = geminiResult.response.text().trim();
